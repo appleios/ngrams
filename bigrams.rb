@@ -20,7 +20,37 @@ lines.scan(/[a-zA-z']+/) do |w|
   prev_word = ww
 end
 
-puts
-sorted_words = bigrams.sort_by { |k,v| -v[:count] }
-sorted_words.each { |k,v| puts "#{k}: #{v}" }
+#puts
+#sorted_words = bigrams.sort_by { |k,v| -v[:count] }
+#sorted_words.each { |k,v| puts "#{k}: #{v}" }
 
+#puts "Sorted 2-grams:"
+sorted_by_second = bigrams.sort_by { |k,v| v[:second] }
+#sorted_by_second.each { |k,v| puts "#{k}: #{v}" }
+
+skip_bigrams = {}
+prev_bigram = nil
+sorted_by_second.each do |k,v|
+  if not prev_bigram.nil?
+    t1 = prev_bigram[:value][:second]
+    t2 = v[:first]
+    if t1 == t2
+      a = prev_bigram[:value][:first]
+      b = v[:second]
+      sb = "#{a}-#{b}"
+      count_a = prev_bigram[:value][:count]
+      count_b = v[:count]
+      skip_bigrams[sb] = {:first => a,
+                          :second => b,
+                          :count_a => count_a,
+                          :count_b => count_b,
+                          :count_avg => (count_a+count_b)/2
+      }
+    end
+  end
+  prev_bigram = {:key => k, :value => v}
+end
+
+puts "Sorted skip-2-grams (by avg count):"
+sorted = skip_bigrams.sort_by { |k,v| v[:count_avg] }
+sorted.each { |k,v| puts "#{k}: #{v}" }
