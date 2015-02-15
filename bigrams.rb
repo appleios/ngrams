@@ -1,3 +1,6 @@
+require 'rubygems'
+require 'progress'
+
 lines = File.readlines("results_yn_q").join(' ')
 bigrams = {}
 prev_word = ""
@@ -26,31 +29,59 @@ end
 
 #puts "Sorted 2-grams:"
 sorted_by_second = bigrams.sort_by { |k,v| v[:second] }
+sorted_by_both = sorted_by_second.sort_by { |k,v| v[:first] }
+
 #sorted_by_second.each { |k,v| puts "#{k}: #{v}" }
 
-skip_bigrams = {}
-prev_bigram = nil
-sorted_by_second.each do |k,v|
-  if not prev_bigram.nil?
-    t1 = prev_bigram[:value][:second]
-    t2 = v[:first]
-    if t1 == t2
-      a = prev_bigram[:value][:first]
-      b = v[:second]
-      sb = "#{a}-#{b}"
-      count_a = prev_bigram[:value][:count]
-      count_b = v[:count]
-      skip_bigrams[sb] = {:first => a,
-                          :second => b,
-                          :count_a => count_a,
-                          :count_b => count_b,
-                          :count_avg => (count_a+count_b)/2
-      }
-    end
-  end
-  prev_bigram = {:key => k, :value => v}
-end
+puts "bigrams count: #{sorted_by_both.count}"
 
-puts "Sorted skip-2-grams (by avg count):"
-sorted = skip_bigrams.sort_by { |k,v| v[:count_avg] }
-sorted.each { |k,v| puts "#{k}: #{v}" }
+Progress('Finding all skip-bigrams',sorted_by_both.count) do
+
+  #begin
+
+    skip_bigrams = {}
+    prev_bigram = nil
+    sorted_by_both.each do |k,v|
+      if not prev_bigram.nil?
+        t1 = prev_bigram[:value][:second]
+
+        Progress.step 1
+
+        all_bigrams_with_first =
+            sorted_by_second.select do |k,b|
+              #puts "#{k}=>#{b}"
+              ((b[:second] != t1) && (b[:first] == t1))
+            end
+
+        all_bigrams_with_first.each do |k,bigram|
+          a = prev_bigram[:value][:first]
+          b = bigram[:second]
+          sb = "#{a}-#{b}"
+          count_a = prev_bigram[:value][:count]
+          count_b = v[:count]
+          skip_bigrams[sb] = {:first => a,
+                              :second => b,
+                              :skip => t1,
+                              :count_a => count_a,
+                              :count_b => count_b,
+                              :count_avg => (count_a+count_b)/2
+          }
+
+          puts skip_bigrams[sb]
+        end
+      end
+      prev_bigram = {:key => k, :value => v}
+    end
+
+    puts "skip-bigrams count: #{skip_bigrams.count}"
+
+
+  #puts "Sorted skip-2-grams (by avg count):"
+    #sorted = skip_bigrams.sort_by { |k,v| v[:count_avg] }
+    #sorted.each { |k,v| puts "#{k}: #{v}" }
+
+  #rescue => e
+  #  puts "Error: #{e}"
+  #end
+
+end
